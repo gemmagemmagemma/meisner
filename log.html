@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/jpg" href="IMG_2884.JPG">
+  <title>My Work — Meisner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .person-switcher {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .person-tab {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 400;
+      padding: 8px 20px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .person-tab:hover { background: var(--bg-card); color: var(--text); }
+    .person-tab.active { background: var(--green-glow); border-color: var(--green-dim); color: var(--green); font-weight: 500; }
+    .btn-add-person {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px dashed var(--border-hover);
+      padding: 8px 16px;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-add-person:hover { color: var(--green); border-color: var(--green-dim); }
+
+    /* Entry index */
+    .entry-index {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .entry-index-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      transition: background 0.15s;
+    }
+    .entry-index-toggle:hover { background: var(--bg-card-hover); }
+    .entry-index-label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .entry-index-chevron {
+      font-size: 13px;
+      color: var(--text-dim);
+      transition: transform 0.2s;
+    }
+    .entry-index.open .entry-index-chevron { transform: rotate(180deg); }
+    .entry-index-body { display: none; border-top: 1px solid var(--border); }
+    .entry-index.open .entry-index-body { display: block; }
+    .entry-index-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s;
+      gap: 12px;
+    }
+    .entry-index-item:last-child { border-bottom: none; }
+    .entry-index-item:hover { background: var(--bg-card-hover); }
+    .entry-index-name {
+      font-size: 14px;
+      color: var(--text-muted);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .entry-index-date { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+
+    /* Back to top */
+    .back-to-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 100px;
+      cursor: pointer;
+      margin-top: 12px;
+      margin-bottom: 32px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .back-to-top:hover { color: var(--green); border-color: var(--green-dim); }
+
+    .person-view-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .person-view-name {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 400;
+      color: var(--text);
+    }
+    .person-entry-count {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <span class="nav-title">Meisner</span>
+  <div class="nav-links">
+    <a href="index.html">Generator</a>
+    <a href="log.html" class="active">My Work</a>
+    <a href="words.html">Behaviour</a>
+    <a href="doings.html">Doings</a>
+    <a href="prompt.html">Prompter</a>
+  </div>
+</nav>
+
+<main id="top">
+  <header class="page-header">
+    <h1>My<br><em>Work</em></h1>
+    <p class="subtitle">Log exercises and track rep club attendance.</p>
+  </header>
+
+  <!-- Person switcher -->
+  <div class="person-switcher" id="person-switcher">
+    <div id="person-tabs" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    <button class="btn-add-person" onclick="openAddPerson()">+ Add person</button>
+  </div>
+
+  <!-- Log form -->
+  <div class="log-form" id="log-form" style="display:none;">
+    <div class="form-row">
+      <label for="log-title">Title</label>
+      <input type="text" id="log-title" placeholder="e.g. Week 3 — confrontation exercise">
+    </div>
+    <div class="form-row">
+      <label for="log-date">Date</label>
+      <input type="date" id="log-date">
+    </div>
+    <div class="form-row">
+      <label for="log-notes">Notes</label>
+      <textarea id="log-notes" placeholder="Describe your scene, what you felt, what changed, what worked..."></textarea>
+    </div>
+    <button class="btn-generate" onclick="saveEntry()">Save Entry</button>
+  </div>
+
+  <!-- Person view -->
+  <div id="person-view"></div>
+
+  <!-- Edit modal -->
+  <div id="modal-overlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-heading">Edit entry</span>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="form-row"><label>Title</label><input type="text" id="edit-title"></div>
+      <div class="form-row"><label>Date</label><input type="date" id="edit-date"></div>
+      <div class="form-row"><label>Notes</label><textarea id="edit-notes" style="min-height:110px;"></textarea></div>
+      <div class="form-row"><label>Class notes</label><textarea id="edit-comment" style="min-height:80px;" placeholder="Feedback, observations, what shifted..."></textarea></div>
+      <div class="modal-actions">
+        <button class="btn-generate" onclick="saveEdit()">Save changes</button>
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add person modal -->
+  <div id="add-person-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeAddPerson()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-heading">Add person</span>
+        <button class="modal-close" onclick="closeAddPerson()">×</button>
+      </div>
+      <div class="form-row"><label>Name</label><input type="text" id="new-person-name" placeholder="e.g. Mia" maxlength="40"></div>
+      <div class="modal-actions">
+        <button class="btn-generate" onclick="confirmAddPerson()">Add</button>
+        <button class="btn-cancel" onclick="closeAddPerson()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</main>
+
+<script>
+function getData() {
+  return JSON.parse(localStorage.getItem("meisner-log-v2") || '{"persons":[],"entries":{},"rep":{}}');
+}
+function saveData(d) { localStorage.setItem("meisner-log-v2", JSON.stringify(d)); }
+
+let activePerson = null;
+let editingId = null;
+const repViewMonth = {};
+const REP_DAYS = ["Tue","Fri","Sun"];
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DURATIONS = ["< 1 hr","1–2 hrs","2–3 hrs"];
+
+document.getElementById("log-date").value = new Date().toISOString().split("T")[0];
+document.getElementById("new-person-name").addEventListener("keydown", e => { if (e.key === "Enter") confirmAddPerson(); });
+
+function init() {
+  const d = getData();
+  if (d.persons.length && !activePerson) activePerson = d.persons[0];
+  renderTabs();
+  renderLogForm();
+  renderPersonView();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────
+function renderTabs() {
+  const d = getData();
+  const el = document.getElementById("person-tabs");
+  el.innerHTML = "";
+  d.persons.forEach(name => {
+    const btn = document.createElement("button");
+    btn.className = "person-tab" + (name === activePerson ? " active" : "");
+    btn.textContent = name;
+    btn.addEventListener("click", () => {
+      activePerson = name;
+      renderTabs();
+      renderLogForm();
+      renderPersonView();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    el.appendChild(btn);
+  });
+}
+
+function renderLogForm() {
+  document.getElementById("log-form").style.display = activePerson ? "block" : "none";
+}
+
+function openAddPerson() {
+  document.getElementById("new-person-name").value = "";
+  document.getElementById("add-person-modal").style.display = "flex";
+  setTimeout(() => document.getElementById("new-person-name").focus(), 50);
+}
+function closeAddPerson() { document.getElementById("add-person-modal").style.display = "none"; }
+
+function confirmAddPerson() {
+  const name = document.getElementById("new-person-name").value.trim();
+  if (!name) return;
+  const d = getData();
+  if (d.persons.includes(name)) { showToast("Name already exists"); return; }
+  d.persons.push(name);
+  if (!d.entries[name]) d.entries[name] = [];
+  if (!d.rep[name]) d.rep[name] = {};
+  saveData(d);
+  activePerson = name;
+  closeAddPerson();
+  renderTabs();
+  renderLogForm();
+  renderPersonView();
+}
+
+// ── LOG ENTRIES ───────────────────────────────────────────────────
+function saveEntry() {
+  if (!activePerson) return;
+  const title = document.getElementById("log-title").value.trim();
+  const notes = document.getElementById("log-notes").value.trim();
+  if (!title && !notes) return;
+  const d = getData();
+  if (!d.entries[activePerson]) d.entries[activePerson] = [];
+  d.entries[activePerson].unshift({
+    id: Date.now(), title: title || "Untitled",
+    date: document.getElementById("log-date").value, notes, comment: "", updatedAt: null
+  });
+  saveData(d);
+  document.getElementById("log-title").value = "";
+  document.getElementById("log-notes").value = "";
+  renderPersonView();
+  showToast("Entry saved");
+}
+
+function deleteEntry(person, id) {
+  if (!confirm("Delete this entry?")) return;
+  const d = getData();
+  d.entries[person] = (d.entries[person] || []).filter(e => e.id !== id);
+  saveData(d);
+  renderPersonView();
+}
+
+function openEdit(person, id) {
+  const d = getData();
+  const entry = (d.entries[person] || []).find(e => e.id === id);
+  if (!entry) return;
+  editingId = { person, id };
+  document.getElementById("edit-title").value = entry.title || "";
+  document.getElementById("edit-date").value = entry.date || "";
+  document.getElementById("edit-notes").value = entry.notes || "";
+  document.getElementById("edit-comment").value = entry.comment || "";
+  document.getElementById("modal-overlay").style.display = "flex";
+}
+function closeModal() { document.getElementById("modal-overlay").style.display = "none"; editingId = null; }
+
+function saveEdit() {
+  if (!editingId) return;
+  const { person, id } = editingId;
+  const d = getData();
+  d.entries[person] = (d.entries[person] || []).map(e => e.id !== id ? e : {
+    ...e,
+    title: document.getElementById("edit-title").value.trim() || "Untitled",
+    date: document.getElementById("edit-date").value,
+    notes: document.getElementById("edit-notes").value.trim(),
+    comment: document.getElementById("edit-comment").value.trim(),
+    updatedAt: Date.now()
+  });
+  saveData(d);
+  closeModal();
+  renderPersonView();
+  showToast("Updated");
+}
+
+function formatDate(str) {
+  if (!str) return "";
+  return new Date(str + "T00:00:00").toLocaleDateString("en-AU", { day:"numeric", month:"short", year:"numeric" });
+}
+
+// ── REP CLUB ──────────────────────────────────────────────────────
+function getWeeksInMonth(year, month) {
+  const last = new Date(year, month + 1, 0);
+  const weeks = [];
+  let start = new Date(year, month, 1);
+  const dow = start.getDay();
+  start.setDate(start.getDate() + (dow === 0 ? -6 : 1 - dow));
+  while (start <= last) { weeks.push(new Date(start)); start.setDate(start.getDate() + 7); }
+  return weeks;
+}
+
+function getRepDayDate(weekStart, day) {
+  const d = new Date(weekStart);
+  d.setDate(d.getDate() + { Tue:1, Fri:4, Sun:6 }[day]);
+  return d;
+}
+
+function buildRepCalendar(person, container) {
+  container.innerHTML = "";
+  const now = new Date();
+  if (!repViewMonth[person]) repViewMonth[person] = { year: now.getFullYear(), month: now.getMonth() };
+  const { year, month } = repViewMonth[person];
+  const d = getData();
+  const repData = d.rep[person] || {};
+  const weeks = getWeeksInMonth(year, month);
+
+  const header = document.createElement("div");
+  header.className = "rep-month-header";
+  const lbl = document.createElement("span");
+  lbl.className = "rep-month-label";
+  lbl.textContent = `${MONTHS[month]} ${year}`;
+  const nav = document.createElement("div");
+  nav.className = "rep-month-nav";
+  const prev = document.createElement("button");
+  prev.className = "rep-nav-btn"; prev.textContent = "←";
+  prev.addEventListener("click", () => {
+    let { year: y, month: m } = repViewMonth[person];
+    m--; if (m < 0) { m = 11; y--; }
+    repViewMonth[person] = { year: y, month: m };
+    buildRepCalendar(person, container);
+  });
+  const next = document.createElement("button");
+  next.className = "rep-nav-btn"; next.textContent = "→";
+  next.addEventListener("click", () => {
+    let { year: y, month: m } = repViewMonth[person];
+    m++; if (m > 11) { m = 0; y++; }
+    repViewMonth[person] = { year: y, month: m };
+    buildRepCalendar(person, container);
+  });
+  nav.appendChild(prev); nav.appendChild(next);
+  header.appendChild(lbl); header.appendChild(nav);
+  container.appendChild(header);
+
+  const cal = document.createElement("div");
+  cal.className = "rep-calendar";
+
+  weeks.forEach((weekStart, wi) => {
+    const weekRow = document.createElement("div");
+    weekRow.className = "rep-week";
+    const wlbl = document.createElement("span");
+    wlbl.className = "rep-week-label";
+    wlbl.textContent = `Wk ${wi + 1}`;
+    weekRow.appendChild(wlbl);
+    const slots = document.createElement("div");
+    slots.className = "rep-day-slots";
+    const weekDurKey = `${year}-${month}-w${wi}-dur`;
+    let anyAttended = false;
+
+    REP_DAYS.forEach(day => {
+      const date = getRepDayDate(weekStart, day);
+      const inMonth = date.getMonth() === month && date.getFullYear() === year;
+      const dayCol = document.createElement("div"); dayCol.className = "rep-day";
+      const dayName = document.createElement("span"); dayName.className = "rep-day-name";
+      const tick = document.createElement("div"); tick.className = "rep-tick";
+
+      if (!inMonth) {
+        dayName.textContent = day;
+        tick.style.opacity = "0.15"; tick.style.cursor = "default"; tick.style.pointerEvents = "none";
+      } else {
+        const k = `${year}-${month}-w${wi}-${day}`;
+        const attended = repData[k] || false;
+        if (attended) anyAttended = true;
+        dayName.textContent = `${day} ${date.getDate()}`;
+        if (attended) { tick.classList.add("attended"); tick.textContent = "✓"; }
+        tick.addEventListener("click", () => {
+          const fresh = getData();
+          if (!fresh.rep[person]) fresh.rep[person] = {};
+          fresh.rep[person][k] = !fresh.rep[person][k];
+          if (!fresh.rep[person][k]) delete fresh.rep[person][weekDurKey];
+          saveData(fresh);
+          buildRepCalendar(person, container);
+        });
+      }
+      dayCol.appendChild(dayName); dayCol.appendChild(tick); slots.appendChild(dayCol);
+    });
+
+    weekRow.appendChild(slots);
+    cal.appendChild(weekRow);
+
+    if (anyAttended) {
+      const durRow = document.createElement("div");
+      durRow.className = "rep-duration-row visible";
+      const durLbl = document.createElement("span"); durLbl.className = "rep-duration-label"; durLbl.textContent = "Duration";
+      durRow.appendChild(durLbl);
+      const weekDur = repData[weekDurKey] || "";
+      DURATIONS.forEach(dur => {
+        const btn = document.createElement("button");
+        btn.className = "rep-dur-btn" + (weekDur === dur ? " selected" : "");
+        btn.textContent = dur;
+        btn.addEventListener("click", () => {
+          const fresh = getData();
+          if (!fresh.rep[person]) fresh.rep[person] = {};
+          fresh.rep[person][weekDurKey] = dur;
+          saveData(fresh);
+          buildRepCalendar(person, container);
+        });
+        durRow.appendChild(btn);
+      });
+      cal.appendChild(durRow);
+    }
+  });
+  container.appendChild(cal);
+}
+
+// ── PERSON VIEW ───────────────────────────────────────────────────
+function renderPersonView() {
+  const container = document.getElementById("person-view");
+  container.innerHTML = "";
+  const d = getData();
+
+  if (!activePerson) {
+    const p = document.createElement("p");
+    p.className = "empty-state";
+    p.textContent = "Add a person above to start logging.";
+    container.appendChild(p);
+    return;
+  }
+
+  const entries = d.entries[activePerson] || [];
+
+  // Header
+  const viewHeader = document.createElement("div");
+  viewHeader.className = "person-view-header";
+  const nameLbl = document.createElement("span");
+  nameLbl.className = "person-view-name";
+  nameLbl.textContent = activePerson;
+  const countLbl = document.createElement("span");
+  countLbl.className = "person-entry-count";
+  countLbl.textContent = entries.length === 1 ? "1 entry" : `${entries.length} entries`;
+  viewHeader.appendChild(nameLbl);
+  viewHeader.appendChild(countLbl);
+  container.appendChild(viewHeader);
+
+  // Rep club
+  const repSec = document.createElement("div");
+  repSec.className = "rep-section";
+  const repTitle = document.createElement("span");
+  repTitle.className = "rep-section-title";
+  repTitle.textContent = "Rep Club Attendance";
+  const repCal = document.createElement("div");
+  repSec.appendChild(repTitle);
+  repSec.appendChild(repCal);
+  container.appendChild(repSec);
+  buildRepCalendar(activePerson, repCal);
+
+  // Entry index (foldable)
+  if (entries.length > 0) {
+    const index = document.createElement("div");
+    index.className = "entry-index";
+
+    const indexToggle = document.createElement("button");
+    indexToggle.className = "entry-index-toggle";
+    indexToggle.innerHTML = `<span class="entry-index-label">Entry index (${entries.length})</span><span class="entry-index-chevron">▾</span>`;
+    indexToggle.addEventListener("click", () => index.classList.toggle("open"));
+
+    const indexBody = document.createElement("div");
+    indexBody.className = "entry-index-body";
+
+    entries.forEach(entry => {
+      const row = document.createElement("div");
+      row.className = "entry-index-item";
+      row.innerHTML = `<span class="entry-index-name">${entry.title || "Untitled"}</span><span class="entry-index-date">${formatDate(entry.date)}</span>`;
+      row.addEventListener("click", () => {
+        const target = document.getElementById("entry-" + entry.id);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        index.classList.remove("open");
+      });
+      indexBody.appendChild(row);
+    });
+
+    index.appendChild(indexToggle);
+    index.appendChild(indexBody);
+    container.appendChild(index);
+  }
+
+  // Entries
+  if (!entries.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.style.padding = "20px 0";
+    empty.textContent = "No entries yet.";
+    container.appendChild(empty);
+  } else {
+    entries.forEach(entry => {
+      const card = document.createElement("div");
+      card.className = "entry-card";
+      card.id = "entry-" + entry.id;
+
+      const updated = entry.updatedAt
+        ? `<span class="entry-updated-tag">updated ${formatDate(new Date(entry.updatedAt).toISOString().split("T")[0])}</span>` : "";
+      const comment = entry.comment
+        ? `<div class="entry-comment"><span class="comment-label">Class notes</span><p class="comment-text">${entry.comment.replace(/\n/g,"<br>")}</p></div>` : "";
+
+      card.innerHTML = `
+        <div class="entry-meta">
+          <span class="entry-date">${formatDate(entry.date)}</span>
+          ${updated}
+          <div class="entry-actions">
+            <button class="btn-edit">Edit</button>
+            <button class="entry-delete">×</button>
+          </div>
+        </div>
+        <h3 class="entry-title">${entry.title || "Untitled"}</h3>
+        ${entry.notes ? `<p class="entry-notes">${entry.notes.replace(/\n/g,"<br>")}</p>` : ""}
+        ${comment}`;
+
+      card.querySelector(".btn-edit").addEventListener("click", () => openEdit(activePerson, entry.id));
+      card.querySelector(".entry-delete").addEventListener("click", () => deleteEntry(activePerson, entry.id));
+
+      // Back to top after each card
+      const btt = document.createElement("button");
+      btt.className = "back-to-top";
+      btt.innerHTML = "↑ Back to top";
+      btt.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
+      container.appendChild(card);
+      container.appendChild(btt);
+    });
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+init();
+</script>
+</body>
+</html>

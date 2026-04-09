@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/jpg" href="IMG_9261.jpg">
+  <title>Behaviour - Meisner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <span class="nav-title">Meisner</span>
+  <div class="nav-links">
+    <a href="index.html">Generator</a>
+    <a href="log.html">My Work</a>
+    <a href="words.html" class="active">Behaviour</a>
+    <a href="doings.html">Doings</a>
+    <a href="prompt.html">Prompter</a>
+  </div>
+</nav>
+
+<main>
+  <header class="page-header">
+    <h1>Behaviour<br><em>Words</em></h1>
+    <p class="subtitle">Tap a word to see its definition.</p>
+  </header>
+  <div class="category-list" id="category-list"></div>
+</main>
+
+<script>
+const CATEGORIES = [
+  { name: "Anxious / Unsettled", words: [
+    { w: "apprehensive", pos: "adj.", def: "Feeling anxiety or fear about a future event; dreading what is to come." },
+    { w: "edgy", pos: "adj.", def: "Tense, nervous, or irritable; easily unsettled or provoked." },
+    { w: "fidgety", pos: "adj.", def: "Inclined to fidget; unable to remain still due to nervousness or restlessness." },
+    { w: "guarded", pos: "adj.", def: "Cautious and having reservations; unwilling to show feelings or give information." },
+    { w: "hesitant", pos: "adj.", def: "Tentative; slow to act or speak due to uncertainty or unwillingness." },
+    { w: "jittery", pos: "adj.", def: "Feeling or showing extreme nervousness; unable to keep still." },
+    { w: "nervous", pos: "adj.", def: "Easily agitated or alarmed; apprehensive about an imminent event or situation." },
+    { w: "on edge", pos: "adj.", def: "Tense and irritable; in a state of nervous excitement or anxiety." },
+    { w: "rattled", pos: "adj.", def: "Unnerved or flustered; disturbed from a state of composure." },
+    { w: "restless", pos: "adj.", def: "Unable to remain still or quiet; feeling discontented and not able to relax." },
+    { w: "tense", pos: "adj.", def: "Unable to relax due to anxiety or nervousness; strained or stretched tight." },
+    { w: "uneasy", pos: "adj.", def: "Causing or feeling anxiety; troubled or uncomfortable." },
+    { w: "wary", pos: "adj.", def: "Feeling or showing caution about possible dangers or problems." },
+    { w: "wound up", pos: "adj.", def: "In a state of nervous tension or anxiety; tightly strung." }
+  ]},
+  { name: "Closed off / Withdrawn", words: [
+    { w: "aloof", pos: "adj.", def: "Not friendly or forthcoming; cool and distant in manner." },
+    { w: "avoidant", pos: "adj.", def: "Tending to avoid engagement, intimacy, or commitment; emotionally evasive." },
+    { w: "blank", pos: "adj.", def: "Showing no expression; devoid of feeling, understanding, or reaction." },
+    { w: "cold", pos: "adj.", def: "Lacking warmth of feeling; unfriendly; not showing emotion." },
+    { w: "detached", pos: "adj.", def: "Separate or disconnected; lacking emotional involvement; aloof." },
+    { w: "disconnected", pos: "adj.", def: "Not joined or linked; lacking coherence or emotional connection." },
+    { w: "distant", pos: "adj.", def: "Remote in manner; not intimate or friendly; aloof in relations with others." },
+    { w: "flat", pos: "adj.", def: "Lacking vitality, animation, or interest; dull and without variation in expression." },
+    { w: "frozen", pos: "adj.", def: "Unable to move or act, especially due to shock or fear; rigidly immobile." },
+    { w: "hollow", pos: "adj.", def: "Having an empty space inside; lacking genuine feeling or meaning; insincere." },
+    { w: "numb", pos: "adj.", def: "Deprived of feeling; unable to think, feel, or respond." },
+    { w: "remote", pos: "adj.", def: "Having very little connection with or relationship to; aloof in manner." },
+    { w: "reserved", pos: "adj.", def: "Slow to reveal emotion or opinions; restrained in manner." },
+    { w: "shut down", pos: "adj.", def: "Having ceased to function or respond; emotionally or mentally closed off." },
+    { w: "stiff", pos: "adj.", def: "Not relaxed or natural; constrained in manner; formal and uneasy." },
+    { w: "withholding", pos: "adj.", def: "Refusing to give or grant something; keeping back information or feeling." }
+  ]},
+  { name: "Desperate / Urgent", words: [
+    { w: "desperate", pos: "adj.", def: "Feeling or showing a hopeless sense that a situation is so bad it will not improve; reckless from despair." },
+    { w: "frantic", pos: "adj.", def: "Distraught with fear, anxiety, or other extreme emotion; hurried and disorganised." },
+    { w: "hurried", pos: "adj.", def: "Done with excessive haste; rushed; not given enough time." },
+    { w: "insistent", pos: "adj.", def: "Demanding something; not accepting refusal; continuing firmly in a course of action." },
+    { w: "intense", pos: "adj.", def: "Of extreme force, degree, or strength; having or showing strong feelings." },
+    { w: "obsessive", pos: "adj.", def: "Of the nature of an obsession; preoccupied with a fixed idea to a degree that excludes other things." },
+    { w: "panicked", pos: "adj.", def: "Affected with sudden uncontrollable fear or anxiety; thrown into a state of panic." },
+    { w: "pressured", pos: "adj.", def: "Experiencing or subjected to a great deal of stress or demands." },
+    { w: "rushed", pos: "adj.", def: "Done or completed hurriedly; performed with excessive speed." },
+    { w: "strained", pos: "adj.", def: "Under severe tension; showing the effects of pressure; not natural or relaxed." },
+    { w: "urgent", pos: "adj.", def: "Requiring immediate action or attention; pressing; compelling." }
+  ]},
+  { name: "Expectant / Hopeful", words: [
+    { w: "anticipatory", pos: "adj.", def: "Happening, performed, or felt in anticipation of something; looking forward." },
+    { w: "eager", pos: "adj.", def: "Keenly expectant or interested; having or showing enthusiasm." },
+    { w: "earnest", pos: "adj.", def: "Resulting from or showing sincere and intense conviction; serious in intention." },
+    { w: "expectant", pos: "adj.", def: "Having or showing an excited feeling that something is about to happen." },
+    { w: "hopeful", pos: "adj.", def: "Feeling or inspiring optimism about a future event; full of hope." },
+    { w: "longing", pos: "adj.", def: "Having or showing a yearning desire; feeling a persistent wish for something absent." },
+    { w: "open", pos: "adj.", def: "Receptive to new ideas or arguments; accessible; not closed or blocked." },
+    { w: "patient", pos: "adj.", def: "Able to accept or tolerate delays, problems, or suffering without becoming annoyed." },
+    { w: "poised", pos: "adj.", def: "Having a composed and self-assured manner; balanced and ready." },
+    { w: "searching", pos: "adj.", def: "Examining carefully; penetrating and thorough; seeking to find something." },
+    { w: "yearning", pos: "adj.", def: "Having an intense feeling of longing for something; tenderly desirous." }
+  ]},
+  { name: "Grieving / Pained", words: [
+    { w: "aching", pos: "adj.", def: "Suffering from a continuous dull pain; feeling deep sadness or longing." },
+    { w: "bereft", pos: "adj.", def: "Lacking something or feeling a great loss; desolate because of a loss." },
+    { w: "broken", pos: "adj.", def: "Reduced to despair; having given up all hope; mentally or emotionally shattered." },
+    { w: "crushed", pos: "adj.", def: "Completely overwhelmed by disappointment or grief; devastated." },
+    { w: "devastated", pos: "adj.", def: "Highly distressed or shocked; overwhelmed with grief or loss." },
+    { w: "forlorn", pos: "adj.", def: "Pitifully sad and abandoned; having little or no hope; appearing lonely." },
+    { w: "heartbroken", pos: "adj.", def: "Overwhelmed with grief, despair, or disappointment; deeply sorrowful." },
+    { w: "hollow", pos: "adj.", def: "Feeling empty; experiencing a sense of deep emptiness or meaninglessness." },
+    { w: "lost", pos: "adj.", def: "Unable to find one's way; feeling helpless or confused; no longer knowing one's purpose." },
+    { w: "mournful", pos: "adj.", def: "Feeling, expressing, or inducing sadness, regret, or grief." },
+    { w: "pained", pos: "adj.", def: "Affected with pain; suffering physical or mental discomfort; distressed." },
+    { w: "raw", pos: "adj.", def: "In a natural, unrefined state; very recently hurt or upset; painfully sensitive." },
+    { w: "sorrowful", pos: "adj.", def: "Feeling or showing grief; full of sorrow; sad." },
+    { w: "wounded", pos: "adj.", def: "Injured or hurt; suffering from an emotional hurt or offence." }
+  ]},
+  { name: "Angry / Defiant", words: [
+    { w: "aggressive", pos: "adj.", def: "Ready or likely to attack or confront; pursuing one's aims forcefully." },
+    { w: "bitter", pos: "adj.", def: "Feeling or showing anger, hurt, or resentment because of bad experiences." },
+    { w: "contemptuous", pos: "adj.", def: "Showing contempt; scornful; feeling that a person is beneath consideration." },
+    { w: "defiant", pos: "adj.", def: "Showing defiance; boldly resistant or challenging; refusing to obey." },
+    { w: "furious", pos: "adj.", def: "Extremely angry; full of fury; moving with great energy, speed, or intensity." },
+    { w: "hard", pos: "adj.", def: "Done with a great deal of force; showing no signs of weakness or sympathy; harsh." },
+    { w: "hostile", pos: "adj.", def: "Showing or feeling opposition or dislike; unfriendly; antagonistic." },
+    { w: "indignant", pos: "adj.", def: "Feeling or showing anger or annoyance at what is perceived as unfair treatment." },
+    { w: "outraged", pos: "adj.", def: "Bitterly offended or angered; aroused to anger by a perceived injustice." },
+    { w: "petulant", pos: "adj.", def: "Childishly sulky or bad-tempered; showing sudden irritation over something minor." },
+    { w: "resentful", pos: "adj.", def: "Feeling bitterness or indignation at having been treated unfairly." },
+    { w: "seething", pos: "adj.", def: "Filled with or showing intense but barely controlled anger." },
+    { w: "volatile", pos: "adj.", def: "Liable to change rapidly and unpredictably, especially for the worse; easily provoked to anger." }
+  ]},
+  { name: "Guilty / Ashamed", words: [
+    { w: "apologetic", pos: "adj.", def: "Regretfully acknowledging or excusing an offence or failure; full of apology." },
+    { w: "ashamed", pos: "adj.", def: "Embarrassed or guilty because of one's actions, characteristics, or associations." },
+    { w: "contrite", pos: "adj.", def: "Feeling or expressing remorse at the recognition that one has done wrong." },
+    { w: "embarrassed", pos: "adj.", def: "Feeling or showing self-consciousness, shame, or awkwardness." },
+    { w: "guilty", pos: "adj.", def: "Culpable of or responsible for an offence; having a sense of guilt." },
+    { w: "humiliated", pos: "adj.", def: "Made to feel ashamed and foolish by injuring one's dignity and self-respect." },
+    { w: "meek", pos: "adj.", def: "Quiet, gentle, and submissive; showing patience and humility." },
+    { w: "remorseful", pos: "adj.", def: "Filled with deep regret or guilt for a wrong committed." },
+    { w: "self-conscious", pos: "adj.", def: "Uncomfortably aware of oneself as an object of observation by others." },
+    { w: "sheepish", pos: "adj.", def: "Showing embarrassment from shame or a lack of self-confidence; bashful." },
+    { w: "small", pos: "adj.", def: "Made to feel insignificant or humiliated; diminished in one's own estimation." }
+  ]},
+  { name: "Controlled / Composed", words: [
+    { w: "calculated", pos: "adj.", def: "Done with awareness of the likely consequence; carefully planned; deliberate." },
+    { w: "calm", pos: "adj.", def: "Not showing or feeling nervousness, anger, or other strong emotions; tranquil." },
+    { w: "careful", pos: "adj.", def: "Making sure of avoiding potential danger, mishap, or harm; attentive and cautious." },
+    { w: "composed", pos: "adj.", def: "Having one's feelings and expression under control; calm and self-possessed." },
+    { w: "contained", pos: "adj.", def: "Kept within limits; controlled; showing restraint in one's behaviour." },
+    { w: "controlled", pos: "adj.", def: "Managed or restrained; showing careful management of one's behaviour." },
+    { w: "deliberate", pos: "adj.", def: "Done consciously and intentionally; careful and unhurried in one's actions." },
+    { w: "measured", pos: "adj.", def: "Having careful consideration; restrained and well-considered; not impulsive." },
+    { w: "precise", pos: "adj.", def: "Marked by exactness and accuracy; careful about minute details." },
+    { w: "restrained", pos: "adj.", def: "Characterised by reserve or moderation; not displaying emotions freely." },
+    { w: "steady", pos: "adj.", def: "Firmly fixed, supported, or balanced; regular and even; free from change." },
+    { w: "stoic", pos: "adj.", def: "Enduring pain or hardship without showing one's feelings or complaining." }
+  ]},
+  { name: "Playful / Light", words: [
+    { w: "breezy", pos: "adj.", def: "Appearing relaxed, cheerful, and confident; pleasantly light and casual." },
+    { w: "buoyant", pos: "adj.", def: "Cheerful and optimistic; tending to float or rise; light-hearted." },
+    { w: "cheeky", pos: "adj.", def: "Showing a lack of respect or politeness in an amusing, appealing way; impudent." },
+    { w: "easy", pos: "adj.", def: "Free from worry, anxiety, or care; relaxed and comfortable." },
+    { w: "flirtatious", pos: "adj.", def: "Behaving in a way that shows a playful sexual attraction; given to flirting." },
+    { w: "jovial", pos: "adj.", def: "Cheerful and friendly; full of good humour." },
+    { w: "light", pos: "adj.", def: "Not severe, serious, or heavy; gentle and delicate; easy and cheerful." },
+    { w: "mischievous", pos: "adj.", def: "Causing or showing a fondness for causing trouble in a playful way." },
+    { w: "playful", pos: "adj.", def: "Fond of games and amusement; light-hearted and full of fun." },
+    { w: "teasing", pos: "adj.", def: "Making fun of or attempting to provoke in a playful or unkind way." },
+    { w: "warm", pos: "adj.", def: "Having, showing, or expressive of enthusiasm, affection, or kindness." },
+    { w: "witty", pos: "adj.", def: "Showing or characterised by quick and inventive verbal humour." }
+  ]},
+  { name: "Suspicious / Watchful", words: [
+    { w: "calculating", pos: "adj.", def: "Acting in a scheming and ruthlessly determined way; coldly planning for advantage." },
+    { w: "cautious", pos: "adj.", def: "Careful to avoid potential problems or dangers; wary." },
+    { w: "cool", pos: "adj.", def: "Showing no enthusiasm; unfriendly; calmly audacious or controlled." },
+    { w: "mistrustful", pos: "adj.", def: "Lacking in trust; inclined to doubt or be suspicious of others." },
+    { w: "observant", pos: "adj.", def: "Quick to notice things; paying close attention to what is happening." },
+    { w: "probing", pos: "adj.", def: "Seeking to elicit information; investigating or exploring thoroughly." },
+    { w: "sceptical", pos: "adj.", def: "Not easily convinced; having doubts or reservations about something." },
+    { w: "sharp", pos: "adj.", def: "Having quick perception; keenly attentive; quick to notice or understand things." },
+    { w: "suspicious", pos: "adj.", def: "Having or showing a cautious distrust of someone or something; inclined to suspect." },
+    { w: "watchful", pos: "adj.", def: "Watching or observing carefully; alert and vigilant." }
+  ]},
+  { name: "Vulnerable / Exposed", words: [
+    { w: "bare", pos: "adj.", def: "Without concealment; undisguised; exposed; not covered or hidden." },
+    { w: "delicate", pos: "adj.", def: "Very fine in texture or structure; fragile; easily broken or damaged." },
+    { w: "exposed", pos: "adj.", def: "Uncovered; laid open to view; vulnerable to harm or criticism." },
+    { w: "fragile", pos: "adj.", def: "Easily broken or damaged; flimsy; not strong or sturdy; delicate." },
+    { w: "naked", pos: "adj.", def: "Without concealment or disguise; exposed and vulnerable; undisguised." },
+    { w: "open", pos: "adj.", def: "Allowing access; not sealed or covered; candid and not concealing thoughts." },
+    { w: "raw", pos: "adj.", def: "Painfully sensitive; exposed to view; not yet processed or hardened." },
+    { w: "sensitive", pos: "adj.", def: "Quickly and strongly affected by external conditions; having acute feelings." },
+    { w: "soft", pos: "adj.", def: "Gentle and compassionate; easily affected by emotions; not harsh." },
+    { w: "tender", pos: "adj.", def: "Showing gentleness and concern; highly susceptible to pain or grief." },
+    { w: "transparent", pos: "adj.", def: "Easy to perceive or detect; open; frank; without guile or concealment." },
+    { w: "unguarded", pos: "adj.", def: "Without protection or caution; not carefully considered; candid." }
+  ]},
+  { name: "Resigned / Defeated", words: [
+    { w: "defeated", pos: "adj.", def: "Having been overcome or beaten; deprived of success; demoralised." },
+    { w: "deflated", pos: "adj.", def: "Having lost confidence or enthusiasm; made to feel suddenly less important." },
+    { w: "drained", pos: "adj.", def: "Having all energy or vitality removed; exhausted; emptied of resources." },
+    { w: "exhausted", pos: "adj.", def: "Drained of strength or energy; extremely tired; completely used up." },
+    { w: "flat", pos: "adj.", def: "Lacking enthusiasm or animation; below the expected standard; dull." },
+    { w: "heavy", pos: "adj.", def: "Feeling weighed down; oppressive; laden with difficulty or sadness." },
+    { w: "hopeless", pos: "adj.", def: "Feeling or causing despair; giving no grounds for hope; incompetent." },
+    { w: "indifferent", pos: "adj.", def: "Having no particular interest or sympathy; unconcerned; not caring." },
+    { w: "jaded", pos: "adj.", def: "Tired, bored, or lacking enthusiasm, typically after having too much of something." },
+    { w: "listless", pos: "adj.", def: "Lacking energy or enthusiasm; unwilling to make any effort." },
+    { w: "numb", pos: "adj.", def: "Deprived of the power of sensation; unable to think, feel, or react." },
+    { w: "resigned", pos: "adj.", def: "Having accepted something unpleasant as inevitable; submissive or acquiescent." },
+    { w: "spent", pos: "adj.", def: "Having been used and therefore no longer useful; exhausted of energy." },
+    { w: "worn", pos: "adj.", def: "Exhausted; showing the wearing effects of age, use, or toil; weary." }
+  ]},
+  { name: "Determined / Focused", words: [
+    { w: "certain", pos: "adj.", def: "Feeling confident and sure about something; established beyond doubt." },
+    { w: "committed", pos: "adj.", def: "Feeling dedication and loyalty to a cause, activity, or job; pledged." },
+    { w: "driven", pos: "adj.", def: "Motivated by something; determined or energetic; compelled to achieve." },
+    { w: "firm", pos: "adj.", def: "Having a solid, steady character; resolute and determined; not giving way." },
+    { w: "fixed", pos: "adj.", def: "Fastened securely in position; decided and settled; directed steadily." },
+    { w: "focused", pos: "adj.", def: "Directing a great deal of attention, effort, or activity towards a particular aim." },
+    { w: "intent", pos: "adj.", def: "Showing concentration; determined to do something; firmly fixed in purpose." },
+    { w: "purposeful", pos: "adj.", def: "Having or showing determination or resolve; full of meaning; intentional." },
+    { w: "resolute", pos: "adj.", def: "Admirably purposeful, determined, and unwavering; firm in purpose." },
+    { w: "tenacious", pos: "adj.", def: "Tending to keep a firm hold of something; persistent; not readily relinquishing." }
+  ]},
+  { name: "Confused / Lost", words: [
+    { w: "adrift", pos: "adj.", def: "Without purpose or guidance; not knowing what to do; floating without direction." },
+    { w: "bewildered", pos: "adj.", def: "Perplexed and confused; very puzzled by something unexpected." },
+    { w: "conflicted", pos: "adj.", def: "Having or showing confused and mutually inconsistent feelings; internally divided." },
+    { w: "confused", pos: "adj.", def: "Unable to think clearly; bewildered and perplexed; in disorder." },
+    { w: "disoriented", pos: "adj.", def: "Having lost one's sense of direction, position, or identity." },
+    { w: "distracted", pos: "adj.", def: "Unable to concentrate because one's mind is preoccupied with something else." },
+    { w: "foggy", pos: "adj.", def: "Unable to think clearly; indistinct and confused; lacking clarity." },
+    { w: "lost", pos: "adj.", def: "Unable to find one's way; not knowing where one is; deeply confused." },
+    { w: "muddled", pos: "adj.", def: "Brought into a disordered or confusing state; confused in thought." },
+    { w: "overwhelmed", pos: "adj.", def: "Completely submerged or overpowered; buried under an excess of things." },
+    { w: "scattered", pos: "adj.", def: "Not concentrated in one area; disorganised; thinking or acting in a disorganised way." },
+    { w: "thrown", pos: "adj.", def: "Caused to lose composure or confidence; disconcerted; put into disorder." },
+    { w: "uncertain", pos: "adj.", def: "Not able to be relied on; not known or definite; feeling doubt." }
+  ]}
+];
+
+const list = document.getElementById("category-list");
+
+CATEGORIES.forEach(cat => {
+  const item = document.createElement("div");
+  item.className = "category-item";
+
+  const toggle = document.createElement("button");
+  toggle.className = "category-toggle";
+  toggle.innerHTML = `<span><span class="category-name">${cat.name}</span><span class="category-count">${cat.words.length} words</span></span><span class="category-chevron">&#9660;</span>`;
+  toggle.addEventListener("click", () => item.classList.toggle("open"));
+
+  const body = document.createElement("div");
+  body.className = "category-body";
+
+  const chipsDiv = document.createElement("div");
+  chipsDiv.className = "word-chips";
+
+  const detailDiv = document.createElement("div");
+  detailDiv.className = "word-detail";
+  detailDiv.style.display = "none";
+  let currentWord = "";
+
+  cat.words.forEach(entry => {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = entry.w;
+    chip.addEventListener("click", () => {
+      if (currentWord === entry.w && detailDiv.style.display !== "none") {
+        detailDiv.style.display = "none";
+        currentWord = "";
+        chip.classList.remove("chip-active");
+        return;
+      }
+      chipsDiv.querySelectorAll(".chip").forEach(c => c.classList.remove("chip-active"));
+      chip.classList.add("chip-active");
+      currentWord = entry.w;
+      detailDiv.style.display = "block";
+      detailDiv.innerHTML = `<div class="word-detail-title">${entry.w} <span style="font-family:var(--font-mono);font-size:13px;font-weight:300;color:var(--text-dim);font-style:italic;">${entry.pos}</span></div><p class="word-detail-def">${entry.def}</p>`;
+    });
+    chipsDiv.appendChild(chip);
+  });
+
+  body.appendChild(chipsDiv);
+  body.appendChild(detailDiv);
+  item.appendChild(toggle);
+  item.appendChild(body);
+  list.appendChild(item);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/jpg" href="favicon.jpg">
+  <title>Circumstance Checklist - Meisner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <span class="nav-title">Meisner</span>
+  <div class="nav-links">
+    <a href="index.html">Generator</a>
+    <a href="log.html">My Work</a>
+    <a href="words.html">Behaviour</a>
+    <a href="doings.html">Doings</a>
+    <a href="prompt.html" class="active">Prompter</a>
+  </div>
+</nav>
+
+<main>
+  <div class="prompter-wrap">
+    <header class="page-header">
+      <h1>Circumstance<br><em>Checklist</em></h1>
+      <p class="subtitle">Answer each question to build your given circumstances. This will write them up, then you save to a selected log.</p>
+    </header>
+
+    <div class="prompt-progress">
+      <div class="prompt-progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+
+    <div class="answered-list" id="answered-list"></div>
+    <div id="question-area"></div>
+    <div id="result-area" style="display:none;"></div>
+    <div id="toast" class="toast"></div>
+  </div>
+</main>
+
+<script>
+const QUESTIONS = [
+  {
+    key: "essence",
+    q: "What's this about?",
+    hint: "Your essence - the deep why underneath everything. e.g. saving my brother, getting revenge on someone who betrayed me.",
+    placeholder: "e.g. saving my brother"
+  },
+  {
+    key: "alive_moment",
+    q: "What's just happened to bring you here now?",
+    hint: "The alive moment - what just occurred that made you do this activity right now. e.g. just got a phone call, just received a message, just opened a letter.",
+    placeholder: "e.g. I just got off a phone call where they told me it might already be too late"
+  },
+  {
+    key: "done_when",
+    q: "How will you know when you're done?",
+    hint: "Has to be very specific and measurable. e.g. when the drawing is identical to the one I'm copying, when I've untied every knot, when the plate looks perfect.",
+    placeholder: "e.g. when every bead is in the right order and the clasp clicks shut cleanly"
+  },
+  {
+    key: "only_now",
+    q: "Can this be done at any other time?",
+    hint: "Why now and only now? What makes this the moment. If it could wait, it has no urgency.",
+    placeholder: "e.g. No - they leave tomorrow and this is the last thing I can do before then"
+  },
+  {
+    key: "positive_charge",
+    q: "What's going to happen if you get it done?",
+    hint: "Positive charge. Has to be very specific. No maybes, no 'just'. Make it vivid and real.",
+    placeholder: "e.g. She'll look at me the way she used to when I was someone she was proud of"
+  },
+  {
+    key: "negative_charge",
+    q: "What's going to happen if you don't get it done?",
+    hint: "Negative charge. The cost of failure. Specific and real.",
+    placeholder: "e.g. He walks out of that hospital thinking I never tried, and he'd be right"
+  },
+  {
+    key: "looks_like",
+    q: "What's it going to look like when you get it done?",
+    hint: "The image of completion. See it clearly. e.g. the sparkle of joy on their face, on the floor sobbing tears of joy.",
+    placeholder: "e.g. She puts it on and stops talking mid-sentence, just looks down at her wrist"
+  },
+  {
+    key: "fantasy",
+    q: "Is this your A-grade fantasy?",
+    hint: "Someone you love, hate, are obsessed with, terrified of - who makes it matter at the highest level.",
+    placeholder: "e.g. Yes - in my head it's my dad, who I've spent fifteen years trying to make proud"
+  }
+];
+
+let currentStep = 0;
+let answers = {};
+let generatedText = "";
+let isGenerating = false;
+
+function getLogData() {
+  return JSON.parse(localStorage.getItem("meisner-log-v2") || '{"persons":[],"entries":{},"rep":{}}');
+}
+function saveLogData(d) { localStorage.setItem("meisner-log-v2", JSON.stringify(d)); }
+
+function formatDate(str) {
+  if (!str) return "";
+  return new Date(str + "T00:00:00").toLocaleDateString("en-AU", { day:"numeric", month:"short", year:"numeric" });
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+// ── PROGRESS + ANSWERED ───────────────────────────────────────────
+function renderProgress() {
+  document.getElementById("progress-fill").style.width =
+    Math.round((currentStep / QUESTIONS.length) * 100) + "%";
+}
+
+function renderAnswered() {
+  const el = document.getElementById("answered-list");
+  el.innerHTML = "";
+  QUESTIONS.slice(0, currentStep).forEach(q => {
+    const val = answers[q.key];
+    if (!val) return;
+    const row = document.createElement("div");
+    row.className = "answered-item";
+    row.innerHTML = `<span class="answered-label">${q.q}</span><span class="answered-value">${val}</span>`;
+    el.appendChild(row);
+  });
+}
+
+// ── QUESTION STEP ─────────────────────────────────────────────────
+function renderQuestion() {
+  const area = document.getElementById("question-area");
+  area.innerHTML = "";
+
+  if (currentStep >= QUESTIONS.length) {
+    callAI();
+    return;
+  }
+
+  const q = QUESTIONS[currentStep];
+
+  const qEl = document.createElement("div");
+  qEl.className = "prompt-q";
+  qEl.textContent = q.q;
+
+  const hint = document.createElement("div");
+  hint.className = "prompt-hint";
+  hint.textContent = q.hint;
+
+  const textarea = document.createElement("textarea");
+  textarea.className = "prompt-answer";
+  textarea.placeholder = q.placeholder;
+  textarea.rows = 3;
+  if (answers[q.key]) textarea.value = answers[q.key];
+
+  const nav = document.createElement("div");
+  nav.className = "prompt-nav";
+
+  const indicator = document.createElement("span");
+  indicator.className = "prompt-step-indicator";
+  indicator.textContent = `${currentStep + 1} of ${QUESTIONS.length}`;
+
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "btn-next";
+  nextBtn.textContent = currentStep === QUESTIONS.length - 1 ? "Build my circumstances →" : "Next →";
+
+  const skipBtn = document.createElement("button");
+  skipBtn.className = "btn-cancel";
+  skipBtn.textContent = "Skip";
+  skipBtn.style.fontSize = "14px";
+
+  function advance() {
+    const val = textarea.value.trim();
+    if (val) answers[q.key] = val;
+    currentStep++;
+    renderProgress();
+    renderAnswered();
+    renderQuestion();
+  }
+
+  nextBtn.addEventListener("click", advance);
+  skipBtn.addEventListener("click", advance);
+  textarea.addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); advance(); }
+  });
+
+  nav.appendChild(indicator);
+  nav.appendChild(nextBtn);
+  nav.appendChild(skipBtn);
+
+  const wrap = document.createElement("div");
+  wrap.className = "prompt-step";
+  wrap.appendChild(qEl);
+  wrap.appendChild(hint);
+  wrap.appendChild(textarea);
+  wrap.appendChild(nav);
+  area.appendChild(wrap);
+  setTimeout(() => textarea.focus(), 60);
+}
+
+// ── AI CALL ───────────────────────────────────────────────────────
+async function callAI() {
+  if (isGenerating) return;
+  isGenerating = true;
+  generatedText = "";
+
+  const resultArea = document.getElementById("result-area");
+  resultArea.style.display = "block";
+  resultArea.innerHTML = `<p class="generating-msg">Building your given circumstances...</p>`;
+
+  const parts = [
+    answers.essence         && `Essence (what this is about): ${answers.essence}`,
+    answers.alive_moment    && `Alive moment (what just happened): ${answers.alive_moment}`,
+    answers.done_when       && `Done when: ${answers.done_when}`,
+    answers.only_now        && `Why only now: ${answers.only_now}`,
+    answers.positive_charge && `Positive charge (if I get it done): ${answers.positive_charge}`,
+    answers.negative_charge && `Negative charge (if I don't): ${answers.negative_charge}`,
+    answers.looks_like      && `What it looks like when done: ${answers.looks_like}`,
+    answers.fantasy         && `A-grade fantasy: ${answers.fantasy}`,
+  ].filter(Boolean).join("\n\n");
+
+  const systemPrompt = `You are helping an acting student articulate their given circumstances for a Meisner exercise. Write a single, clear, first-person statement of their given circumstances in flowing prose. It should read as vivid, specific, and emotionally grounded — like something an actor would read to themselves before stepping into a scene. Use their exact details only. Do not add anything they haven't mentioned. No theatrical jargon unless they used it. 120–200 words. Present tense.`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: "user", content: `Here are my answers:\n\n${parts}\n\nWrite my given circumstances now.` }]
+      })
+    });
+    const data = await res.json();
+    generatedText = data.content?.find(b => b.type === "text")?.text?.trim() || "";
+    if (!generatedText) throw new Error("empty");
+  } catch {
+    generatedText = "";
+    isGenerating = false;
+    resultArea.innerHTML = `<p style="color:var(--text-dim);font-size:15px;">Couldn't connect. <button class="btn-next" onclick="isGenerating=false;callAI();" style="margin-left:10px;">Try again</button></p>`;
+    return;
+  }
+
+  isGenerating = false;
+  renderResult();
+}
+
+// ── RESULT + SAVE UI ──────────────────────────────────────────────
+function renderResult() {
+  const d = getLogData();
+  const resultArea = document.getElementById("result-area");
+  resultArea.innerHTML = "";
+
+  // Text block
+  const textBlock = document.createElement("div");
+  textBlock.className = "result-block";
+  const textLabel = document.createElement("span");
+  textLabel.className = "result-label";
+  textLabel.textContent = "Your given circumstances";
+  const textEl = document.createElement("div");
+  textEl.className = "result-text";
+  textEl.textContent = generatedText;
+  textBlock.appendChild(textLabel);
+  textBlock.appendChild(textEl);
+  resultArea.appendChild(textBlock);
+
+  // Save block
+  const saveBlock = document.createElement("div");
+  saveBlock.className = "result-block";
+  saveBlock.style.marginTop = "16px";
+  const saveLabel = document.createElement("span");
+  saveLabel.className = "result-label";
+  saveLabel.textContent = "Attach to a log entry";
+  saveBlock.appendChild(saveLabel);
+
+  // Person select
+  const personRow = document.createElement("div");
+  personRow.className = "form-row";
+  personRow.style.marginBottom = "12px";
+  const personLabel = document.createElement("label");
+  personLabel.textContent = "Person";
+  const personSel = document.createElement("select");
+  personSel.style.maxWidth = "260px";
+  personSel.innerHTML = '<option value="">— no person selected —</option>';
+  d.persons.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    personSel.appendChild(opt);
+  });
+  personRow.appendChild(personLabel);
+  personRow.appendChild(personSel);
+  saveBlock.appendChild(personRow);
+
+  // Entry select (shown when person chosen)
+  const entryRow = document.createElement("div");
+  entryRow.className = "form-row";
+  entryRow.style.display = "none";
+  entryRow.style.marginBottom = "0";
+  const entryLabel = document.createElement("label");
+  entryLabel.textContent = "Add to entry";
+  const entrySel = document.createElement("select");
+  entrySel.style.maxWidth = "360px";
+  entryRow.appendChild(entryLabel);
+  entryRow.appendChild(entrySel);
+  saveBlock.appendChild(entryRow);
+
+  const noEntriesMsg = document.createElement("p");
+  noEntriesMsg.style.cssText = "font-size:14px;color:var(--text-dim);display:none;margin-top:8px;";
+  noEntriesMsg.innerHTML = 'No entries yet for this person. <a href="log.html" style="color:var(--green);">Create one first.</a>';
+  saveBlock.appendChild(noEntriesMsg);
+
+  personSel.addEventListener("change", () => {
+    const person = personSel.value;
+    if (!person) { entryRow.style.display = "none"; noEntriesMsg.style.display = "none"; return; }
+    const entries = d.entries[person] || [];
+    entrySel.innerHTML = '<option value="">— save as new entry —</option>';
+    entries.forEach(e => {
+      const opt = document.createElement("option");
+      opt.value = String(e.id);
+      opt.textContent = `${e.title} (${formatDate(e.date)})`;
+      entrySel.appendChild(opt);
+    });
+    if (entries.length) { entryRow.style.display = "flex"; noEntriesMsg.style.display = "none"; }
+    else { entryRow.style.display = "none"; noEntriesMsg.style.display = "block"; }
+  });
+
+  resultArea.appendChild(saveBlock);
+
+  // Actions
+  const actions = document.createElement("div");
+  actions.className = "result-actions";
+  actions.style.marginTop = "16px";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "btn-generate";
+  saveBtn.textContent = "Save";
+  saveBtn.addEventListener("click", () => {
+    const person = personSel.value;
+    const entryIdStr = entrySel.value;
+    const entryId = entryIdStr ? parseInt(entryIdStr) : null;
+    doSave(person, entryId, d);
+  });
+
+  const restartBtn = document.createElement("button");
+  restartBtn.className = "btn-cancel";
+  restartBtn.textContent = "Start over";
+  restartBtn.addEventListener("click", startOver);
+
+  actions.appendChild(saveBtn);
+  actions.appendChild(restartBtn);
+  resultArea.appendChild(actions);
+}
+
+function doSave(person, entryId, d) {
+  const today = new Date().toISOString().split("T")[0];
+  const title = answers.essence
+    ? "Circumstances: " + answers.essence.slice(0, 50)
+    : "Given circumstances";
+
+  if (person && entryId && d.entries[person]) {
+    // Append to existing entry's class notes
+    d.entries[person] = d.entries[person].map(e => {
+      if (e.id !== entryId) return e;
+      const sep = e.comment ? "\n\n─────\n\n" : "";
+      return { ...e, comment: (e.comment || "") + sep + "Given circumstances:\n\n" + generatedText, updatedAt: Date.now() };
+    });
+  } else if (person) {
+    // New entry under person
+    if (!d.entries[person]) d.entries[person] = [];
+    d.entries[person].unshift({ id: Date.now(), title, date: today, notes: generatedText, comment: "", updatedAt: null });
+  } else {
+    // No person — General
+    if (!d.persons.includes("General")) d.persons.push("General");
+    if (!d.entries["General"]) d.entries["General"] = [];
+    d.entries["General"].unshift({ id: Date.now(), title, date: today, notes: generatedText, comment: "", updatedAt: null });
+  }
+
+  saveLogData(d);
+  showToast("Saved");
+  setTimeout(() => { window.location.href = "log.html"; }, 1400);
+}
+
+function startOver() {
+  currentStep = 0;
+  answers = {};
+  generatedText = "";
+  isGenerating = false;
+  document.getElementById("answered-list").innerHTML = "";
+  document.getElementById("result-area").style.display = "none";
+  document.getElementById("result-area").innerHTML = "";
+  document.getElementById("progress-fill").style.width = "0%";
+  renderQuestion();
+}
+
+renderQuestion();
+</script>
+</body>
+</html>

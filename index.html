@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/jpg" href="yas.JPG" />
+    <title>Meisner Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=IBM+Plex+Mono:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      .hero-row {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 24px;
+        align-items: start;
+        margin-bottom: 48px;
+      }
+      .hero-left h1 {
+        font-family: var(--font-display);
+        font-size: clamp(44px, 6.5vw, 66px);
+        font-weight: 400;
+        line-height: 1.05;
+        color: var(--text);
+        margin-bottom: 14px;
+      }
+      .hero-left h1 em {
+        color: var(--green);
+        font-style: italic;
+      }
+      .hero-left .subtitle {
+        font-size: 16px;
+        color: var(--text-dim);
+        line-height: 1.7;
+      }
+      .inspo-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        width: 100%;
+      }
+      .inspo-img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        display: block;
+      }
+      .inspo-loading {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        background: var(--bg-surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        color: var(--text-dim);
+        font-style: italic;
+      }
+      .inspo-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-top: 1px solid var(--border);
+      }
+      .inspo-label {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+      .inspo-btn {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-dim);
+        background: transparent;
+        border: 1px solid var(--border);
+        padding: 4px 10px;
+        border-radius: 100px;
+        cursor: pointer;
+        transition:
+          color 0.2s,
+          border-color 0.2s;
+      }
+      .inspo-btn:hover {
+        color: var(--green);
+        border-color: var(--green-dim);
+      }
+      @media (max-width: 600px) {
+        .hero-row {
+          grid-template-columns: 1fr;
+        }
+      }
+      .person-delete-btn {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0 0 0 4px;
+        transition: color 0.2s;
+      }
+      .person-delete-btn:hover {
+        color: #c0392b;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <span class="nav-title">Meisner</span>
+      <div class="nav-links">
+        <a href="index.html" class="active">Generator</a>
+        <a href="log.html">My Work</a>
+        <a href="words.html">Behaviour</a>
+        <a href="doings.html">Doings</a>
+        <a href="prompt.html">Prompter</a>
+      </div>
+    </nav>
+
+    <main>
+      <div class="hero-row">
+        <div class="hero-left">
+          <h1>Circumstance<br /><em>Generator</em></h1>
+          <p class="subtitle">Generate prompts for Meisner exercises.</p>
+        </div>
+        <div class="inspo-card" id="inspo-card">
+          <div class="inspo-loading" id="inspo-loading">loading...</div>
+          <div class="inspo-footer">
+            <span class="inspo-label">Inspiration</span>
+            <button class="inspo-btn" onclick="loadImage()">New image ↻</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls-bar">
+        <button class="btn-generate" onclick="generate()">Generate</button>
+      </div>
+
+      <div id="sections-grid" class="sections-grid"></div>
+
+      <div class="save-selection-bar" id="save-bar" style="display: none">
+        <span class="save-selection-hint"
+          >Click items to select, then save the combination.</span
+        >
+        <button class="btn-secondary" onclick="saveSelection()">
+          Save selection
+        </button>
+      </div>
+
+      <hr class="section-divider" id="coll-divider" style="display: none" />
+      <div id="coll-section" style="display: none">
+        <h2 class="section-heading">Saved collections</h2>
+        <div id="collections-list"></div>
+      </div>
+
+      <hr class="section-divider" />
+
+      <div class="suggest-block">
+        <span class="suggest-label">Suggest an activity</span>
+        <div class="suggest-row">
+          <input
+            type="text"
+            id="suggest-input"
+            placeholder="e.g. folding boogers into shapes"
+            maxlength="120"
+          />
+          <button class="btn-generate" onclick="addActivity()">Add</button>
+        </div>
+        <div class="custom-activities-list" id="custom-list"></div>
+      </div>
+
+      <hr class="section-divider" />
+
+      <div class="suggest-block">
+        <span class="suggest-label">Manage people in My Work</span>
+        <div
+          id="people-list"
+          style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px"
+        ></div>
+        <p
+          style="
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 10px;
+            line-height: 1.6;
+          "
+        >
+          People are added from the My Work page. Deleting a person here removes
+          their name and all their entries.
+        </p>
+      </div>
+
+      <div id="toast" class="toast"></div>
+    </main>
+
+    <script>
+      // ── IMAGE (picsum.photos — reliable, no API key) ───────────────────
+      function loadImage() {
+        const card = document.getElementById("inspo-card");
+        const loading = document.getElementById("inspo-loading");
+
+        const existing = card.querySelector(".inspo-img");
+        if (existing) existing.remove();
+        loading.style.display = "flex";
+        loading.textContent = "loading...";
+
+        const w = 600,
+          h = 600;
+        const seed = Math.floor(Math.random() * 1000000);
+        const url = `https://picsum.photos/600/600?random=${Math.random()}`;
+
+        const img = document.createElement("img");
+        img.className = "inspo-img";
+        img.alt = "";
+
+        img.onload = () => {
+          loading.style.display = "none";
+          card.insertBefore(img, card.querySelector(".inspo-footer"));
+        };
+        img.onerror = () => {
+          loading.textContent = "image unavailable";
+        };
+        img.src = url;
+      }
+
+      // ── POOL ──────────────────────────────────────────────────────────
+      const BASE_POOL = {
+        person: [
+          "a flatmate",
+          "a workmate",
+          "a sibling",
+          "a neighbour",
+          "your mum",
+          "your dad",
+          "a close friend",
+          "a cousin",
+          "your housemate",
+          "a classmate",
+          "a childhood friend",
+          "your younger brother",
+          "your older sister",
+          "an ex",
+          "a mentor",
+          "a boss",
+          "a teacher",
+          "an old friend you've lost touch with",
+          "a parent you rarely see",
+          "your best friend",
+          "a colleague you admire",
+          "someone you used to be close to",
+          "someone you're in love with",
+          "a parent who let you down",
+          "a friend who betrayed you",
+          "someone who is dying",
+          "a stranger who knows your secret",
+          "your estranged sister",
+          "your father after years apart",
+          "someone you wronged",
+        ],
+        activity: [
+          "peeling a label off cleanly",
+          "sorting tiny beads into colours",
+          "copying a drawing exactly",
+          "tracing a complex design",
+          "wrapping multiple small objects carefully",
+          "organising small items into order",
+          "untangling jewellery",
+          "copying a handwritten letter neatly",
+          "assembling a puzzle",
+          "building a small model piece",
+          "threading beads onto a bracelet",
+          "making a rainbow loom bracelet",
+          "cutting shapes out precisely and glueing them onto something",
+          "decorating something neatly",
+          "following a set of written instructions exactly",
+          "learning a rhythmic clapping pattern",
+          "painting paint by number",
+          "learning to macrame",
+          "cutting out letters from magazine clippings and arranging them into a message",
+          "repairing a broken bracelet",
+          "sewing buttons back onto fabric",
+          "fixing a torn piece of fabric",
+          "unpicking stitches without damaging fabric",
+          "removing a stain carefully",
+          "memorising something word for word",
+          "trying to crack a combination lock",
+          "practising a speech out loud",
+          "copying something with perfect accuracy",
+          "assembling something with very small pieces",
+          "solving a Rubik's cube",
+          "braiding something evenly and tightly",
+          "measuring and marking something precisely",
+          "knitting or crocheting something complex",
+          "learning line dancing",
+          "learning a NFL cheer routine",
+          "holding a yoga pose",
+          "balancing something on your head",
+          "juggling a ball on foot",
+        ],
+        context: [
+          "you haven't seen each other in a few weeks",
+          "you're both tired",
+          "you're running late",
+          "it's an ordinary Tuesday",
+          "nothing has been said yet",
+          "you've just arrived",
+          "they didn't expect you",
+          "you need to tell them something you've been putting off",
+          "you just found out something that changes things",
+          "they don't know you're leaving soon",
+          "something happened that you can't mention",
+          "you've been avoiding them",
+          "they're about to make a decision that affects you",
+          "you may not see them again",
+          "you've just received news you haven't processed",
+          "you've been keeping something from them for months",
+          "you said something last week you can't take back",
+          "they called you and you nearly didn't answer",
+        ],
+        objective: [
+          "get them to stay a little longer",
+          "get them to laugh",
+          "get them to stop worrying about you",
+          "get them to agree with you",
+          "get them to leave you alone",
+          "get them to notice you",
+          "get them to hear you properly",
+          "get them to change their mind",
+          "get them to admit something",
+          "get them to take care of themselves",
+          "get them to trust you again",
+          "get them to open up",
+          "get them to forgive you",
+          "get them to choose you",
+          "get them to stay",
+          "get them to understand what you can't say out loud",
+          "get them to see you as you are",
+          "get them to let you go",
+        ],
+      };
+
+      const SECTION_ORDER = ["person", "activity", "context", "objective"];
+      const SECTION_LABELS = {
+        person: "Person",
+        activity: "Activity",
+        context: "Context",
+        objective: "Objective",
+      };
+      let selected = {};
+
+      function getCustomActivities() {
+        return JSON.parse(
+          localStorage.getItem("meisner-custom-activities") || "[]",
+        );
+      }
+      function saveCustomActivities(a) {
+        localStorage.setItem("meisner-custom-activities", JSON.stringify(a));
+      }
+      function getPool(s) {
+        return s === "activity"
+          ? [...BASE_POOL.activity, ...getCustomActivities()]
+          : BASE_POOL[s];
+      }
+      function pickRandom(arr, n) {
+        return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
+      }
+
+      function addActivity() {
+        const input = document.getElementById("suggest-input");
+        const val = input.value.trim();
+        if (!val) return;
+        const customs = getCustomActivities();
+        if (customs.includes(val) || BASE_POOL.activity.includes(val)) {
+          showToast("Already in the list");
+          return;
+        }
+        customs.push(val);
+        saveCustomActivities(customs);
+        input.value = "";
+        renderCustomList();
+        showToast("Activity added");
+      }
+
+      document
+        .getElementById("suggest-input")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter") addActivity();
+        });
+
+      function removeCustomActivity(val) {
+        saveCustomActivities(getCustomActivities().filter((a) => a !== val));
+        renderCustomList();
+      }
+
+      function renderCustomList() {
+        const el = document.getElementById("custom-list");
+        el.innerHTML = "";
+        getCustomActivities().forEach((a) => {
+          const chip = document.createElement("span");
+          chip.className = "custom-chip";
+          chip.innerHTML = `${a}<button class="custom-chip-remove" title="Remove">×</button>`;
+          chip
+            .querySelector("button")
+            .addEventListener("click", () => removeCustomActivity(a));
+          el.appendChild(chip);
+        });
+      }
+
+      // ── PEOPLE MANAGEMENT ─────────────────────────────────────────────
+      function getLogData() {
+        return JSON.parse(
+          localStorage.getItem("meisner-log-v2") ||
+            '{"persons":[],"entries":{},"rep":{}}',
+        );
+      }
+      function saveLogData(d) {
+        localStorage.setItem("meisner-log-v2", JSON.stringify(d));
+      }
+
+      function renderPeopleList() {
+        const d = getLogData();
+        const el = document.getElementById("people-list");
+        el.innerHTML = "";
+        if (!d.persons.length) {
+          el.innerHTML =
+            '<span style="font-size:14px;color:var(--text-dim);">No people added yet.</span>';
+          return;
+        }
+        d.persons.forEach((name) => {
+          const chip = document.createElement("span");
+          chip.className = "custom-chip";
+          chip.style.background = "var(--bg-surface)";
+          const nameSpan = document.createElement("span");
+          nameSpan.textContent = name;
+          const delBtn = document.createElement("button");
+          delBtn.className = "custom-chip-remove person-delete-btn";
+          delBtn.title = "Delete person and all their entries";
+          delBtn.textContent = "×";
+          delBtn.addEventListener("click", () => {
+            if (
+              !confirm(
+                `Delete "${name}" and all their log entries? This cannot be undone.`,
+              )
+            )
+              return;
+            const fresh = getLogData();
+            fresh.persons = fresh.persons.filter((p) => p !== name);
+            delete fresh.entries[name];
+            delete fresh.rep[name];
+            saveLogData(fresh);
+            renderPeopleList();
+            showToast(`${name} deleted`);
+          });
+          chip.appendChild(nameSpan);
+          chip.appendChild(delBtn);
+          el.appendChild(chip);
+        });
+      }
+
+      // ── GENERATOR ─────────────────────────────────────────────────────
+      function generate() {
+        selected = {};
+        document.getElementById("save-bar").style.display = "none";
+        const grid = document.getElementById("sections-grid");
+        grid.innerHTML = SECTION_ORDER.map(
+          (s) =>
+            `<div class="section-card"><div class="section-label">${SECTION_LABELS[s]}</div><div class="item-list" id="list-${s}"></div></div>`,
+        ).join("");
+
+        SECTION_ORDER.forEach((s) => {
+          const pool = getPool(s);
+          const picks = pickRandom(pool, 3);
+          const hi = Math.floor(Math.random() * 3);
+          const listEl = document.getElementById("list-" + s);
+          picks.forEach((text, i) => {
+            const div = document.createElement("div");
+            div.className = "item" + (i === hi ? " active" : "");
+            div.textContent = text;
+            if (i === hi) selected[s] = text;
+            div.addEventListener("click", () => {
+              listEl
+                .querySelectorAll(".item")
+                .forEach((el) => el.classList.remove("active"));
+              div.classList.add("active");
+              selected[s] = text;
+              document.getElementById("save-bar").style.display = "flex";
+            });
+            listEl.appendChild(div);
+          });
+        });
+        document.getElementById("save-bar").style.display = "flex";
+      }
+
+      function saveSelection() {
+        if (!Object.keys(selected).length) return;
+        const collections = JSON.parse(
+          localStorage.getItem("meisner-collections") || "[]",
+        );
+        collections.unshift({
+          id: Date.now(),
+          date: new Date().toLocaleDateString("en-AU", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          ...selected,
+        });
+        localStorage.setItem(
+          "meisner-collections",
+          JSON.stringify(collections),
+        );
+        renderCollections();
+        showToast("Collection saved");
+      }
+
+      function deleteCollection(id) {
+        let c = JSON.parse(localStorage.getItem("meisner-collections") || "[]");
+        c = c.filter((x) => x.id !== id);
+        localStorage.setItem("meisner-collections", JSON.stringify(c));
+        renderCollections();
+      }
+
+      function renderCollections() {
+        const collections = JSON.parse(
+          localStorage.getItem("meisner-collections") || "[]",
+        );
+        const sec = document.getElementById("coll-section");
+        const divider = document.getElementById("coll-divider");
+        const list = document.getElementById("collections-list");
+        sec.style.display = collections.length ? "block" : "none";
+        divider.style.display = collections.length ? "block" : "none";
+        list.innerHTML = collections
+          .map(
+            (c) => `
+    <div class="collection-card">
+      <div class="collection-meta">
+        <span class="collection-date">${c.date}</span>
+        <button class="collection-delete" onclick="deleteCollection(${c.id})">×</button>
+      </div>
+      <div class="collection-rows">
+        ${SECTION_ORDER.filter((s) => c[s])
+          .map(
+            (s) =>
+              `<div class="coll-cell"><span class="coll-key">${SECTION_LABELS[s]}</span><span class="coll-val">${c[s]}</span></div>`,
+          )
+          .join("")}
+      </div>
+    </div>`,
+          )
+          .join("");
+      }
+
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2200);
+      }
+
+      renderCustomList();
+      renderPeopleList();
+      renderCollections();
+      generate();
+      loadImage();
+    </script>
+  </body>
+</html>
