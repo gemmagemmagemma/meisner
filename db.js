@@ -32,14 +32,17 @@ async function dbGet(key, defaultValue = null) {
 // Write a value by key (upsert — insert or update).
 async function dbSet(key, value) {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
-      method: "POST",
-      headers: {
-        ...HEADERS,
-        Prefer: "resolution=merge-duplicates,return=minimal",
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/${TABLE}?on_conflict=key`,
+      {
+        method: "POST",
+        headers: {
+          ...HEADERS,
+          Prefer: "resolution=merge-duplicates,return=minimal",
+        },
+        body: JSON.stringify({ key, value: JSON.stringify(value) }),
       },
-      body: JSON.stringify({ key, value: JSON.stringify(value) }),
-    });
+    );
     if (!res.ok) {
       const err = await res.text();
       console.warn("dbSet failed for", key, err);
