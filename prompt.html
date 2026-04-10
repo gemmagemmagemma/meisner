@@ -116,48 +116,40 @@ function renderQuestion() {
   setTimeout(() => textarea.focus(), 60);
 }
 
-async function callAI() {
+function callAI() {
   if (isGenerating) return;
   isGenerating = true;
-  generatedText = "";
-  const resultArea = document.getElementById("result-area");
-  resultArea.style.display = "block";
-  resultArea.innerHTML = `<p class="generating-msg">Building your given circumstances...</p>`;
+  generatedText = buildCircumstancesText();
+  isGenerating = false;
+  document.getElementById("question-area").innerHTML = "";
+  renderResult();
+}
 
-  const parts = [
-    answers.essence         && `Essence (what this is about): ${answers.essence}`,
-    answers.alive_moment    && `Alive moment (what just happened): ${answers.alive_moment}`,
-    answers.done_when       && `Done when: ${answers.done_when}`,
-    answers.only_now        && `Why only now: ${answers.only_now}`,
-    answers.positive_charge && `Positive charge (if I get it done): ${answers.positive_charge}`,
-    answers.negative_charge && `Negative charge (if I don't): ${answers.negative_charge}`,
-    answers.looks_like      && `What it looks like when done: ${answers.looks_like}`,
-    answers.fantasy         && `A-grade fantasy: ${answers.fantasy}`,
-  ].filter(Boolean).join("\n\n");
+function buildCircumstancesText() {
+  const p = answers;
+  const lines = [];
 
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 500,
-        system: "You are helping an acting student articulate their given circumstances for a Meisner exercise. Write a single, clear, first-person statement in flowing prose. Vivid, specific, emotionally grounded — like something an actor reads before stepping into a scene. Use their exact details only. No theatrical jargon unless they used it. 120–200 words. Present tense.",
-        messages: [{ role: "user", content: `Here are my answers:\n\n${parts}\n\nWrite my given circumstances now.` }]
-      })
-    });
-    const data = await res.json();
-    generatedText = data.content?.find(b => b.type === "text")?.text?.trim() || "";
-    if (!generatedText) throw new Error("empty");
-  } catch {
-    generatedText = "";
-    isGenerating = false;
-    resultArea.innerHTML = `<p style="color:var(--text-dim);font-size:15px;">Couldn't connect. <button class="btn-next" onclick="isGenerating=false;callAI();" style="margin-left:10px;">Try again</button></p>`;
-    return;
+  function fmt(label, text) {
+    if (!text) return;
+    const t = text.trim().replace(/[.!?]*$/, "");
+    lines.push(label.toUpperCase() + "\n" + t.charAt(0).toUpperCase() + t.slice(1) + ".");
   }
 
-  isGenerating = false;
-  await renderResult();
+  fmt("Essence", p.essence);
+  fmt("What just happened", p.alive_moment);
+  fmt("Why only now", p.only_now);
+
+  if (p.done_when) {
+    const dw = p.done_when.trim().replace(/[.!?]*$/, "").replace(/^when\s+/i, "");
+    lines.push("DONE WHEN\nWhen " + dw.charAt(0).toLowerCase() + dw.slice(1) + ".");
+  }
+
+  fmt("If I get it done", p.positive_charge);
+  fmt("If I don't", p.negative_charge);
+  fmt("What it looks like", p.looks_like);
+  fmt("The fantasy", p.fantasy);
+
+  return lines.join("\n\n");
 }
 
 async function renderResult() {
@@ -167,7 +159,7 @@ async function renderResult() {
 
   const textBlock = document.createElement("div"); textBlock.className = "result-block";
   const textLabel = document.createElement("span"); textLabel.className = "result-label"; textLabel.textContent = "Your given circumstances";
-  const textEl = document.createElement("div"); textEl.className = "result-text"; textEl.textContent = generatedText;
+  const textEl = document.createElement("div"); textEl.className = "result-text"; textEl.style.whiteSpace = "pre-wrap"; textEl.textContent = generatedText;
   textBlock.appendChild(textLabel); textBlock.appendChild(textEl);
   resultArea.appendChild(textBlock);
 
