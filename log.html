@@ -58,6 +58,21 @@
     .person-view-name { font-family: var(--font-display); font-size: 32px; font-weight: 400; color: var(--text); }
     .person-entry-count { font-size: 13px; color: var(--text-dim); }
     .loading-state { font-size: 15px; color: var(--text-dim); font-style: italic; padding: 40px 0; text-align: center; }
+    .doings-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px 26px; margin-bottom: 16px; }
+    .doings-section-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 18px; display: block; }
+    .doings-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+    .doings-form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .doings-form-row input[type="text"] { flex: 1; min-width: 140px; }
+    .doings-form-row input[type="date"] { max-width: 180px; }
+    .doing-card { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; position: relative; }
+    .doing-card:last-child { margin-bottom: 0; }
+    .doing-meta { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+    .doing-word { font-family: var(--font-display); font-size: 17px; font-weight: 400; color: var(--text); font-style: italic; }
+    .doing-date { font-size: 12px; color: var(--text-dim); }
+    .doing-note { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-top: 4px; white-space: pre-wrap; }
+    .doing-delete { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--text-dim); font-size: 18px; cursor: pointer; line-height: 1; padding: 0; }
+    .doing-delete:hover { color: var(--text-muted); }
+    .doings-empty { font-size: 14px; color: var(--text-dim); font-style: italic; }
   </style>
 </head>
 <body>
@@ -180,6 +195,8 @@ async function confirmAddPerson() {
   d.persons.push(name);
   if (!d.entries[name]) d.entries[name] = [];
   if (!d.rep[name]) d.rep[name] = {};
+  if (!d.doings) d.doings = {};
+  if (!d.doings[name]) d.doings[name] = [];
   await saveLogData(d);
   activePerson = name;
   closeAddPerson();
@@ -250,6 +267,61 @@ async function saveEdit() {
 function formatDate(str) {
   if (!str) return "";
   return new Date(str + "T00:00:00").toLocaleDateString("en-AU", { day:"numeric", month:"short", year:"numeric" });
+}
+
+// ── DOINGS ───────────────────────────────────────────────────────
+async function buildDoingsSection(person, container) {
+  const d = await getLogData();
+  if (!d.doings) d.doings = {};
+  const doings = d.doings[person] || [];
+  container.innerHTML = "";
+
+  const form = document.createElement("div"); form.className = "doings-form";
+  const row = document.createElement("div"); row.className = "doings-form-row";
+  const wordInput = document.createElement("input"); wordInput.type = "text"; wordInput.placeholder = "e.g. charm, confront, pressure…";
+  const dateInput = document.createElement("input"); dateInput.type = "date"; dateInput.value = new Date().toISOString().split("T")[0];
+  row.appendChild(wordInput); row.appendChild(dateInput);
+  const noteInput = document.createElement("textarea"); noteInput.placeholder = "How did it go?"; noteInput.rows = 2; noteInput.style.resize = "vertical";
+  const saveBtn = document.createElement("button"); saveBtn.className = "btn-generate"; saveBtn.style.alignSelf = "flex-start"; saveBtn.textContent = "Save doing";
+  saveBtn.addEventListener("click", async () => {
+    const word = wordInput.value.trim();
+    if (!word) return;
+    showToast("Saving...");
+    const fresh = await getLogData();
+    if (!fresh.doings) fresh.doings = {};
+    if (!fresh.doings[person]) fresh.doings[person] = [];
+    fresh.doings[person].unshift({ id: Date.now(), doing: word, date: dateInput.value, note: noteInput.value.trim() });
+    await saveLogData(fresh);
+    wordInput.value = ""; noteInput.value = "";
+    buildDoingsSection(person, container);
+    showToast("Saved");
+  });
+  form.appendChild(row); form.appendChild(noteInput); form.appendChild(saveBtn);
+  container.appendChild(form);
+
+  if (!doings.length) {
+    const empty = document.createElement("p"); empty.className = "doings-empty"; empty.textContent = "No doings logged yet.";
+    container.appendChild(empty);
+  } else {
+    doings.forEach(item => {
+      const card = document.createElement("div"); card.className = "doing-card";
+      const meta = document.createElement("div"); meta.className = "doing-meta";
+      const word = document.createElement("span"); word.className = "doing-word"; word.textContent = item.doing;
+      const date = document.createElement("span"); date.className = "doing-date"; date.textContent = formatDate(item.date);
+      meta.appendChild(word); meta.appendChild(date);
+      const delBtn = document.createElement("button"); delBtn.className = "doing-delete"; delBtn.textContent = "×";
+      delBtn.addEventListener("click", async () => {
+        const fresh = await getLogData();
+        fresh.doings[person] = fresh.doings[person].filter(x => x.id !== item.id);
+        await saveLogData(fresh);
+        buildDoingsSection(person, container);
+      });
+      card.appendChild(meta);
+      if (item.note) { const note = document.createElement("p"); note.className = "doing-note"; note.textContent = item.note; card.appendChild(note); }
+      card.appendChild(delBtn);
+      container.appendChild(card);
+    });
+  }
 }
 
 // ── REP CLUB ──────────────────────────────────────────────────────
@@ -391,6 +463,13 @@ async function renderPersonView() {
   repSec.appendChild(repTitle); repSec.appendChild(repCal);
   container.appendChild(repSec);
   buildRepCalendar(activePerson, repCal);
+
+  const doingsSec = document.createElement("div"); doingsSec.className = "doings-section";
+  const doingsTitle = document.createElement("span"); doingsTitle.className = "doings-section-title"; doingsTitle.textContent = "Doings";
+  const doingsList = document.createElement("div");
+  doingsSec.appendChild(doingsTitle); doingsSec.appendChild(doingsList);
+  container.appendChild(doingsSec);
+  buildDoingsSection(activePerson, doingsList);
 
   if (entries.length > 0) {
     const index = document.createElement("div"); index.className = "entry-index";
