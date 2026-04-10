@@ -109,7 +109,7 @@ function renderQuestion() {
   nextBtn.addEventListener("click", advance);
   skipBtn.addEventListener("click", advance);
   textarea.addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); advance(); } });
-  nav.appendChild(indicator); nav.appendChild(nextBtn); nav.appendChild(skipBtn);
+  nav.appendChild(nextBtn); nav.appendChild(skipBtn); nav.appendChild(indicator);
   const wrap = document.createElement("div"); wrap.className = "prompt-step";
   wrap.appendChild(qEl); wrap.appendChild(hint); wrap.appendChild(textarea); wrap.appendChild(nav);
   area.appendChild(wrap);
@@ -122,6 +122,8 @@ function callAI() {
   generatedText = buildCircumstancesText();
   isGenerating = false;
   document.getElementById("question-area").innerHTML = "";
+  const resultArea = document.getElementById("result-area");
+  resultArea.style.display = "block";
   renderResult();
 }
 
