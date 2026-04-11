@@ -58,8 +58,14 @@
     .person-view-name { font-family: var(--font-display); font-size: 32px; font-weight: 400; color: var(--text); }
     .person-entry-count { font-size: 13px; color: var(--text-dim); }
     .loading-state { font-size: 15px; color: var(--text-dim); font-style: italic; padding: 40px 0; text-align: center; }
-    .doings-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px 26px; margin-bottom: 16px; }
+    .doings-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 26px; margin-bottom: 16px; }
     .doings-section-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 18px; display: block; }
+    .section-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 6px 0; background: none; border: none; cursor: pointer; font-family: var(--font-mono); }
+    .section-toggle-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); font-weight: 400; }
+    .section-toggle-chevron { font-size: 12px; color: var(--text-dim); transition: transform 0.2s; }
+    .section-open .section-toggle-chevron { transform: rotate(180deg); }
+    .section-body { display: none; margin-top: 16px; }
+    .section-open .section-body { display: block; }
     .doings-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
     .doings-form-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .doings-form-row input[type="text"] { flex: 1; min-width: 140px; }
@@ -144,7 +150,6 @@ let editingId = null;
 const repViewMonth = {};
 const REP_DAYS = ["Tue","Fri","Sun"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const DURATIONS = ["< 1 hr","1–2 hrs","2–3 hrs"];
 
 document.getElementById("log-date").value = new Date().toISOString().split("T")[0];
 document.getElementById("new-person-name").addEventListener("keydown", e => { if (e.key === "Enter") confirmAddPerson(); });
@@ -379,8 +384,6 @@ async function buildRepCalendar(person, container) {
     const wlbl = document.createElement("span"); wlbl.className = "rep-week-label"; wlbl.textContent = `Wk ${wi + 1}`;
     weekRow.appendChild(wlbl);
     const slots = document.createElement("div"); slots.className = "rep-day-slots";
-    const weekDurKey = `${year}-${month}-w${wi}-dur`;
-    let anyAttended = false;
 
     for (const day of REP_DAYS) {
       const date = getRepDayDate(weekStart, day);
@@ -395,14 +398,12 @@ async function buildRepCalendar(person, container) {
       } else {
         const k = `${year}-${month}-w${wi}-${day}`;
         const attended = repData[k] || false;
-        if (attended) anyAttended = true;
         dayName.textContent = `${day} ${date.getDate()}`;
         if (attended) { tick.classList.add("attended"); tick.textContent = "✓"; }
         tick.addEventListener("click", async () => {
           const fresh = await getLogData();
           if (!fresh.rep[person]) fresh.rep[person] = {};
           fresh.rep[person][k] = !fresh.rep[person][k];
-          if (!fresh.rep[person][k]) delete fresh.rep[person][weekDurKey];
           await saveLogData(fresh);
           buildRepCalendar(person, container);
         });
@@ -411,27 +412,6 @@ async function buildRepCalendar(person, container) {
     }
 
     weekRow.appendChild(slots); cal.appendChild(weekRow);
-
-    if (anyAttended) {
-      const durRow = document.createElement("div"); durRow.className = "rep-duration-row visible";
-      const durLbl = document.createElement("span"); durLbl.className = "rep-duration-label"; durLbl.textContent = "Duration";
-      durRow.appendChild(durLbl);
-      const weekDur = repData[weekDurKey] || "";
-      DURATIONS.forEach(dur => {
-        const btn = document.createElement("button");
-        btn.className = "rep-dur-btn" + (weekDur === dur ? " selected" : "");
-        btn.textContent = dur;
-        btn.addEventListener("click", async () => {
-          const fresh = await getLogData();
-          if (!fresh.rep[person]) fresh.rep[person] = {};
-          fresh.rep[person][weekDurKey] = dur;
-          await saveLogData(fresh);
-          buildRepCalendar(person, container);
-        });
-        durRow.appendChild(btn);
-      });
-      cal.appendChild(durRow);
-    }
   }
   container.appendChild(cal);
 }
@@ -458,18 +438,20 @@ async function renderPersonView() {
   container.appendChild(viewHeader);
 
   const repSec = document.createElement("div"); repSec.className = "rep-section";
-  const repTitle = document.createElement("span"); repTitle.className = "rep-section-title"; repTitle.textContent = "Rep Club Attendance";
-  const repCal = document.createElement("div");
-  repSec.appendChild(repTitle); repSec.appendChild(repCal);
+  const repToggle = document.createElement("button"); repToggle.className = "section-toggle";
+  repToggle.innerHTML = '<span class="section-toggle-label">Rep Club Attendance</span><span class="section-toggle-chevron">▾</span>';
+  repToggle.addEventListener("click", () => { repSec.classList.toggle("section-open"); if (repSec.classList.contains("section-open")) buildRepCalendar(activePerson, repCal); });
+  const repCal = document.createElement("div"); repCal.className = "section-body";
+  repSec.appendChild(repToggle); repSec.appendChild(repCal);
   container.appendChild(repSec);
-  buildRepCalendar(activePerson, repCal);
 
   const doingsSec = document.createElement("div"); doingsSec.className = "doings-section";
-  const doingsTitle = document.createElement("span"); doingsTitle.className = "doings-section-title"; doingsTitle.textContent = "Doings";
-  const doingsList = document.createElement("div");
-  doingsSec.appendChild(doingsTitle); doingsSec.appendChild(doingsList);
+  const doingsToggle = document.createElement("button"); doingsToggle.className = "section-toggle";
+  doingsToggle.innerHTML = '<span class="section-toggle-label">Doings</span><span class="section-toggle-chevron">▾</span>';
+  doingsToggle.addEventListener("click", () => { doingsSec.classList.toggle("section-open"); if (doingsSec.classList.contains("section-open")) buildDoingsSection(activePerson, doingsList); });
+  const doingsList = document.createElement("div"); doingsList.className = "section-body";
+  doingsSec.appendChild(doingsToggle); doingsSec.appendChild(doingsList);
   container.appendChild(doingsSec);
-  buildDoingsSection(activePerson, doingsList);
 
   if (entries.length > 0) {
     const index = document.createElement("div"); index.className = "entry-index";
